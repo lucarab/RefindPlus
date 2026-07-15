@@ -32,7 +32,7 @@ on:
 jobs:
   make-binaries:
     name: Make Binaries
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
       - name: List/Set Misc
