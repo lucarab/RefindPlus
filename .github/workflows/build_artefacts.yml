@@ -32,7 +32,7 @@ on:
 jobs:
   make-binaries:
     name: Make Binaries
-    runs-on: macos-26-intel
+    runs-on: macos-12
 
     steps:
       - name: List/Set Misc
@@ -262,14 +262,13 @@ jobs:
           ./RefindPlusBuilder.sh --build-type="${BUILD_FLAG}"
           unset IS_REMOTE
 
-
         ###
         # If signing is active, prefix with 'NOT_SIGNED---' for the
         # signing job to handle the final outputs without collision
         ###
       - name: Upload Artefact (REL)
         if: success() && contains(github.event.inputs.build_type, 'REL')
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: "${{ github.event.inputs.sign_output == 'NO' && 'x64_RefindPlus-Artefacts_REL' || 'NOT_SIGNED---x64_RefindPlus-Artefacts_REL' }}"
           path: |
@@ -278,7 +277,7 @@ jobs:
 
       - name: Upload Artefact (DBG)
         if: success() && contains(github.event.inputs.build_type, 'DBG')
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: "${{ github.event.inputs.sign_output == 'NO' && 'x64_RefindPlus-Artefacts_DBG' || 'NOT_SIGNED---x64_RefindPlus-Artefacts_DBG' }}"
           path: |
@@ -287,19 +286,18 @@ jobs:
 
       - name: Upload Artefact (NPT)
         if: success() && contains(github.event.inputs.build_type, 'NPT')
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: "${{ github.event.inputs.sign_output == 'NO' && 'x64_RefindPlus-Artefacts_NPT' || 'NOT_SIGNED---x64_RefindPlus-Artefacts_NPT' }}"
           path: |
               ~/Documents/RefindPlus/edk2/Build/RefindPlus/NOOPT_XCODE5/x64/*.efi
               ~/Documents/RefindPlus/edk2/Build/RefindPlus/NOOPT_XCODE5/x64/*.txt
 
-
-      ###
-      # Advice on recommended action on file names
-      # Only display here if not signing artefacts
-      # Otherwise, display after signing artefacts
-      ###
+        ###
+        # Advice on recommended action on file names
+        # Only display here if not signing artefacts
+        # Otherwise, display after signing artefacts
+        ###
       - name: Build Notice
         if: ${{ github.event.inputs.sign_output == 'NO' }}
         shell: bash
@@ -427,24 +425,23 @@ jobs:
             exit 1
           fi
 
-
       - name: Fetch Interim Artefact (REL)
         if: contains(github.event.inputs.build_type, 'REL')
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: NOT_SIGNED---x64_RefindPlus-Artefacts_REL
           path: Unsigned_REL
 
       - name: Fetch Interim Artefact (DBG)
         if: contains(github.event.inputs.build_type, 'DBG')
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: NOT_SIGNED---x64_RefindPlus-Artefacts_DBG
           path: Unsigned_DBG
 
       - name: Fetch Interim Artefact (NPT)
         if: contains(github.event.inputs.build_type, 'NPT')
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: NOT_SIGNED---x64_RefindPlus-Artefacts_NPT
           path: Unsigned_NPT
@@ -464,13 +461,21 @@ jobs:
 
           if [[ -n "${ENV_USER_KEY}" ]]; then
             echo "Cert/Key: Fetch User-Provided"
+            
+            # Write the raw secrets out to files
             echo "${ENV_USER_KEY}" > "${CERT_PATH}.key"
+            
+            # Update variables so they point to the newly created files
+            # (Fixes the "Invalid format '***'" GITHUB_ENV bug)
+            ENV_USER_KEY="${CERT_PATH}.key"
 
             if [[ -n "${ENV_USER_CRT}" ]]; then
               echo "${ENV_USER_CRT}" > "${CERT_PATH}.crt"
+              ENV_USER_CRT="${CERT_PATH}.crt"
             fi
             if [[ -n "${ENV_USER_CER}" ]]; then
               echo "${ENV_USER_CER}" > "${CERT_PATH}.cer"
+              ENV_USER_CER="${CERT_PATH}.cer"
             fi
           fi
 
@@ -508,6 +513,7 @@ jobs:
           fi
 
           # Store Outputs for Subsequent Steps
+          # Because ENV_USER_KEY/CRT/CER now contain file paths, this will succeed.
           echo "PATH_KEY=${ENV_USER_KEY}" >> $GITHUB_ENV
           echo "PATH_CRT=${ENV_USER_CRT}" >> $GITHUB_ENV
           echo "PATH_CER=${ENV_USER_CER}" >> $GITHUB_ENV
@@ -748,7 +754,7 @@ jobs:
         ###
       - name: Upload Signed Binaries (REL)
         if: contains(github.event.inputs.build_type, 'REL')
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: x64_RefindPlus-Artefacts_REL
           path: |
@@ -759,7 +765,7 @@ jobs:
 
       - name: Upload Signed Binaries (DBG)
         if: contains(github.event.inputs.build_type, 'DBG')
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: x64_RefindPlus-Artefacts_DBG
           path: |
@@ -770,7 +776,7 @@ jobs:
 
       - name: Upload Signed Binaries (NPT)
         if: contains(github.event.inputs.build_type, 'NPT')
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: x64_RefindPlus-Artefacts_NPT
           path: |
@@ -780,10 +786,10 @@ jobs:
               NPT_signed_DIR/*.txt
 
 
-      ###
-      # Advice on recommended action on file names
-      # Always displayed here if signing artefacts
-      ###
+        ###
+        # Advice on recommended action on file names
+        # Always displayed here if signing artefacts
+        ###
       - name: Signature Notice
         if: always()
         shell: bash
